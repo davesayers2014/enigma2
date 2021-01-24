@@ -1,6 +1,6 @@
 from time import time
 
-from enigma import ePoint, eServiceCenter, eServiceReference, eTimer
+from enigma import ePoint, eServiceCenter, eServiceReference, eTimer, eServiceCenter, ePoint, eSize, eWidget, getDesktop
 
 from RecordTimer import AFTEREVENT
 from Components.ActionMap import ActionMap, HelpableActionMap, HelpableNumberActionMap
@@ -98,6 +98,9 @@ class EPGSelectionBase(Screen, HelpableScreen):
 		self.eventviewWasShown = False
 		self.session.pipshown = False
 		self.pipServiceRelation = getRelationDict() if plugin_PiPServiceRelation_installed else {}
+		self["guidebouquetlist"] = Label()
+		self["firsttab"] = Label()
+		self["tabsrow"] = Label()
 		self["Service"] = ServiceEvent()
 		self["Event"] = Event()
 		self["lab1"] = Label(_("Please wait while gathering EPG data..."))
@@ -719,14 +722,68 @@ class EPGBouquetSelection:
 
 	def getCurrentBouquetName(self):
 		return self.bouquets[self.selectedBouquetIndex][0] if self.selectedBouquetIndex >= 0 else None
+		
+	def makebouqlistlabel(self):
+
+		screenwidth = getDesktop(0).size()
+		if screenwidth.width() > 1280:
+			self.firsttabpadding = 45
+			self.firsttabminsize = 291
+			self.tabswidth = 1740
+			self.tabsheight = 52
+		else:
+			self.firsttabpadding = 30
+			self.firsttabminsize = 194
+			self.tabswidth = 1160
+			self.tabsheight = 35
+        
+		if self['tabsrow'].instance.size().width() >= 0 or self['tabsrow'].instance.size().height() >= 0:
+			self.tabswidth = self['tabsrow'].instance.size().width()
+			self.tabsheight = self['tabsrow'].instance.size().height()
+
+			boqlist = ""
+			index = 0
+			listlength = len(self.bouquets)
+			for boqs in self.bouquets:
+				if boqs[0] != self['bouquetlist'].getCurrentBouquet():
+					index = index + 1
+				else:   
+					break;
+
+			newendbouqlist = self.bouquets[0:index-1]
+			newstartbouqlist = self.bouquets[index+1:listlength]
+			finalbouqlist = newstartbouqlist + newendbouqlist
+
+			for boqs in finalbouqlist:
+				boqlist = boqlist + boqs[0] + "   |   "
+				#boqlist = boqlist + "   |   " + boqs[0]
+
+			self['guidebouquetlist'].setText(boqlist)
+
+			self.firsttabtext = self['firsttab'].setText(self['Title'].text)
+			self.firsttabsize = self['firsttab'].getSize()
+			self.firsttabwidth = self.firsttabsize[0]
+			self.firsttabpos = self['tabsrow'].getPosition()
+            
+			self.firsttabwidth =  self.firsttabwidth + (self.firsttabpadding * 2)
+			if self.firsttabwidth < self.firsttabminsize:
+				self.firsttabwidth = self.firsttabminsize 
+
+			self['firsttab'].instance.resize(eSize(self.firsttabwidth , self.tabsheight))
+			self['firsttab'].instance.move(ePoint(self.firsttabpos[0], self.firsttabpos[1]))
+            
+			self['guidebouquetlist'].instance.resize(eSize(int(self.tabswidth - self.firsttabwidth - (self.firsttabpadding * 2)),self.tabsheight))
+			self['guidebouquetlist'].instance.move(ePoint(self.firsttabpos[0] + self.firsttabwidth + self.firsttabpadding, self.firsttabpos[1]))
 
 	def nextBouquet(self):
 		self.setBouquetIndex(self.selectedBouquetIndex + 1)
 		self.bouquetChanged()
+		self.makebouqlistlabel()
 
 	def prevBouquet(self):
 		self.setBouquetIndex(self.selectedBouquetIndex - 1)
 		self.bouquetChanged()
+		self.makebouqlistlabel()
 
 	def setBouquetIndex(self, index):
 		self.selectedBouquetIndex = index % len(self.bouquets)
